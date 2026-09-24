@@ -1,20 +1,21 @@
 import sys
 
 class Interaction:
-    def ask(self, context: dict, summary: dict, questions: list) -> list:
+    def ask(self, context: dict, questions: list) -> list:
         print("\n" + "="*50)
         print("          CODE UNDERSTANDING CHECK")
         print("="*50 + "\n")
         
-        # 1. Print Summary
-        print("--- SUMMARY ---")
-        print(f"What Changed: {summary.get('what_changed', 'N/A')}")
-        print(f"Impact: {summary.get('impact', 'N/A')}")
-        print(f"Why it matters: {summary.get('why_it_matters', 'N/A')}\n")
-        
         # 2. Print Diff and Context
         for f in context.get("structured_changes", []):
             print(f"--- FILE: {f['file']} | FUNCTION: {f['function']}() ---")
+            
+            # Print Summary for this change
+            summary = f.get('summary', {})
+            print("\n[SUMMARY]")
+            print(f"What Changed: {summary.get('what_changed', 'N/A')}")
+            print(f"Impact: {summary.get('impact', 'N/A')}")
+            print(f"Why it matters: {summary.get('why_it_matters', 'N/A')}")
             
             print("\n[DIFF]")
             diff_lines = f['diff'].split('\n')

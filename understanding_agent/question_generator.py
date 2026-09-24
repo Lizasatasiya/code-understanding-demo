@@ -54,16 +54,20 @@ class QuestionGenerator:
             "Keep the questions short and concise. Do not write long questions.",
             "Focus on logic, data flow, and dependency reasoning. No generic questions.",
             "",
-            "## What Changed",
-            f"- {summary.get('what_changed', 'N/A')}",
-            f"- Impact: {summary.get('impact', 'N/A')}",
-            f"- Why it matters: {summary.get('why_it_matters', 'N/A')}",
+        lines = [
+            "You are a senior developer reviewing a code change.",
+            "Generate between 2 and 7 specific questions to test if the author understands their own change.",
+            "The number of questions should depend on how complex the change is. If the change is small, 2 or 3 is enough.",
+            "Keep the questions short and concise. Do not write long questions.",
+            "Focus on logic, data flow, and dependency reasoning. No generic questions.",
             "",
             "## Changed Functions",
         ]
 
         for f in context.get("structured_changes", []):
+            summary = f.get('summary', {})
             lines.append(f"File: {f.get('file', '?')} | Function: {f.get('function', '?')}()")
+            lines.append(f"Summary: {summary.get('what_changed', 'N/A')} Impact: {summary.get('impact', 'N/A')}")
             lines.append("Diff:")
             lines.append(f"```diff\n{f.get('diff', '')}\n```")
             lines.append("Dependencies invoked by this function:")
