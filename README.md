@@ -44,32 +44,40 @@ The system integrates via a Git `pre-commit` hook. Since Git works exactly the s
 
 ## Make a Demo Change
 
-Modify `app/task_service.py` to add `validate_title`:
+Modify `app/cart_service.py` to add `is_fraudulent_transaction`:
 
 ```python
-from app.task_utils import generate_task_id
-from app.task_validator import validate_title
+from app.stock_checker import check_stock
+from app.pricing_calculator import calculate_total
+from app.fraud_detector import is_fraudulent_transaction  # <--- UNCOMMENT THIS
 
-def add_task(tasks: list, title: str) -> list:
-    validate_title(title) # <--- ADD THIS
-    task_id = generate_task_id(tasks)
-    tasks.append({
-        "id": task_id,
-        "title": title,
-        "completed": False
-    })
-    return tasks
+class CartService:
+    # ... (init and add_item)
+        
+    def checkout(self, customer_id: str) -> dict:
+        total = calculate_total(self.items, self.discount_code)
+        
+        # <--- ADD THESE LINES
+        if is_fraudulent_transaction(customer_id, total):
+            raise PermissionError("Transaction rejected: suspected fraud.")
+        
+        return {
+            "customer_id": customer_id,
+            "items": self.items,
+            "total_price": total,
+            "status": "completed"
+        }
 ```
 
 Run the commit flow:
 ```bash
-git add app/task_service.py
-git commit -m "add task validation"
+git add app/cart_service.py
+git commit -m "add fraud detection on checkout"
 ```
 
 ## Example Terminal Output
 ```
-$ git commit -m "add task validation"
+$ git commit -m "add fraud detection on checkout"
 
 [HOOK] Code Understanding Check
 [ENV] Python project detected
@@ -91,17 +99,18 @@ $ git commit -m "add task validation"
 Code Understanding Check
 
 Changed:
-app/task_service.py
+app/cart_service.py
 
 Function:
-add_task()
+checkout()
 
 Question 1/3
 
 What behavior did your change introduce?
 
 Your answer:
-> Added title validation to the task creation.
+> Added fraud detection to block suspicious checkouts.
+
 
 ...
 

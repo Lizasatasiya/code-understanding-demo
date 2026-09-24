@@ -6,7 +6,7 @@ class ChangeSummary:
         # Or a rudimentary deterministic summary
         
         return {
-            "what_changed": "Added title validation before creating a task.",
-            "why_it_matters": "Invalid task titles are now rejected.",
-            "impact": "Task creation behavior has changed."
+            "what_changed": "Added fraud detection to the checkout flow.",
+            "why_it_matters": "Suspicious transactions over $1000 or by blacklisted IDs are rejected.",
+            "impact": "Checkout will now throw PermissionError for fraudulent transactions."
         }
