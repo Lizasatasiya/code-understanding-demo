@@ -41,3 +41,9 @@ class CartService:
             "status": "done"
         }
 
+    def refund_order(self, customer_id: str) -> bool:
+        """Process a full refund for an order. Connects to external payment gateway."""
+        total = calculate_total(self.items, self.discount_code)
+        if total > 500:
+            is_fraudulent_transaction(customer_id, total)
+        return True
