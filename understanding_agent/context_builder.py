@@ -42,14 +42,18 @@ class ContextBuilder:
         
         structured_changes = []
         for f in changed_code:
-            # get full diff of the file
+            filepath = f["path"]
+            
+            # Get old and new source
             try:
-                diff = subprocess.check_output(
-                    ["git", "diff", "--cached", f['path']], 
-                    text=True
-                ).strip()
+                old_source = subprocess.check_output(["git", "show", f"HEAD:{filepath}"], text=True, stderr=subprocess.DEVNULL)
             except subprocess.CalledProcessError:
-                diff = ""
+                old_source = ""
+                
+            try:
+                new_source = subprocess.check_output(["git", "show", f":{filepath}"], text=True, stderr=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                new_source = ""
                 
             for func in f.get("changed_functions", []):
                 func_name = func["name"]
@@ -57,10 +61,26 @@ class ContextBuilder:
                 
                 dep_text = self._build_dependency_summary(func_name, added_calls, dep_summaries)
                 
+                # Extract function diff
+                old_func_body = self._extract_function_source(old_source, func_name)
+                new_func_body = self._extract_function_source(new_source, func_name)
+                
+                import difflib
+                diff_lines = list(difflib.unified_diff(
+                    old_func_body.splitlines(keepends=True),
+                    new_func_body.splitlines(keepends=True),
+                    fromfile=f"a/{filepath} ({func_name})",
+                    tofile=f"b/{filepath} ({func_name})",
+                    n=3
+                ))
+                func_diff = "".join(diff_lines)
+                if not func_diff:
+                    func_diff = "No logic changes detected in this function."
+                
                 structured_changes.append({
-                    "file": f["path"],
+                    "file": filepath,
                     "function": func_name,
-                    "diff": diff,
+                    "diff": func_diff,
                     "dependency_summary": dep_text
                 })
         
@@ -104,6 +124,18 @@ class ContextBuilder:
         except Exception:
             pass
         return {"args": [], "returns": "unknown", "docstring": "No description.", "is_async": False}
+        
+    def _extract_function_source(self, source: str, func_name: str) -> str:
+        if not source:
+            return ""
+        try:
+            tree = ast.parse(source)
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == func_name:
+                    return ast.get_source_segment(source, node) or ""
+        except SyntaxError:
+            pass
+        return ""
         
     def _build_dependency_summary(self, func_name: str, direct_calls: list, dep_summaries: dict) -> str:
         if not direct_calls:

@@ -54,13 +54,6 @@ class QuestionGenerator:
             "Keep the questions short and concise. Do not write long questions.",
             "Focus on logic, data flow, and dependency reasoning. No generic questions.",
             "",
-        lines = [
-            "You are a senior developer reviewing a code change.",
-            "Generate between 2 and 7 specific questions to test if the author understands their own change.",
-            "The number of questions should depend on how complex the change is. If the change is small, 2 or 3 is enough.",
-            "Keep the questions short and concise. Do not write long questions.",
-            "Focus on logic, data flow, and dependency reasoning. No generic questions.",
-            "",
             "## Changed Functions",
         ]
 
