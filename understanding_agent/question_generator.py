@@ -65,19 +65,13 @@ class QuestionGenerator:
             "## Changed Functions",
         ]
 
-        for f in context.get("changed_code", []):
-            lines.append(f"File: {f.get('path', '?')}")
-            for fn in f.get("changed_functions", []):
-                calls = ", ".join(fn.get("added_calls", [])) or "none"
-                lines.append(f"  - {fn['name']}()  →  new calls: [{calls}]")
-
-        lines += [
-            "",
-            "## Key Dependencies",
-        ]
-
-        for dep in context.get("dependencies", []):
-            lines.append(f"  - {dep.get('function', '?')} is defined in {dep.get('defined_in', '?')}")
+        for f in context.get("structured_changes", []):
+            lines.append(f"File: {f.get('file', '?')} | Function: {f.get('function', '?')}()")
+            lines.append("Diff:")
+            lines.append(f"```diff\n{f.get('diff', '')}\n```")
+            lines.append("Dependencies invoked by this function:")
+            lines.append(f"{f.get('dependency_summary', '')}")
+            lines.append("")
 
         lines += [
             "",

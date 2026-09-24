@@ -38,6 +38,6 @@ class CartService:
             "customer_id": customer_id,
             "items": self.items,
             "total_price": total,
-            "status": "completed"
+            "status": "done"
         }
 
