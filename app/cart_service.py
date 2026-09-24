@@ -46,6 +46,23 @@ class CartService:
         total = calculate_total(self.items, self.discount_code)
         if total > 500:
             is_fraudulent_transaction(customer_id, total)
-        return True     
+        return True
 
- 
+    def apply_bulk_discount(self, code: str) -> float:
+        """Applies a promo code if valid and returns the discounted total price."""
+        if not validate_promo_code(code):
+            raise ValueError(f"Promo code '{code}' is not valid.")
+        self.discount_code = code
+        return calculate_total(self.items, self.discount_code)
+
+    def get_order_summary(self, customer_id: str) -> dict:
+        """Returns a full order summary including fraud check status and final price."""
+        total = calculate_total(self.items, self.discount_code)
+        is_suspicious = is_fraudulent_transaction(customer_id, total)
+        return {
+            "customer_id": customer_id,
+            "item_count": len(self.items),
+            "discount_code": self.discount_code,
+            "total": total,
+            "flagged": is_suspicious,
+        }
