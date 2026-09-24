@@ -2,13 +2,13 @@ import sys
 
 class Interaction:
     def ask(self, context: dict, questions: list) -> list:
-        print("\n" + "="*50)
+        print("\n")
         print("          CODE UNDERSTANDING CHECK")
-        print("="*50 + "\n")
+        print("\n")
         
         # 2. Print Diff and Context
         for f in context.get("structured_changes", []):
-            print(f"--- FILE: {f['file']} | FUNCTION: {f['function']}() ---")
+            print(f"FILE: {f['file']} | FUNCTION: {f['function']}() ")
             
             # Print Summary for this change
             summary = f.get('summary', {})
@@ -28,10 +28,10 @@ class Interaction:
                 
             print("\n[CONTEXT / DEPENDENCIES]")
             print(f['dependency_summary'])
-            print("-" * 50 + "\n")
+            print("\n")
         
         # 3. Ask Questions
-        print("--- QUESTIONS ---\n")
+        print(" QUESTIONS \n")
         answers = []
         for i, q in enumerate(questions, 1):
             print(f"Q{i}: {q}")
@@ -49,8 +49,8 @@ class Interaction:
             })
             print("")
             
-        print("="*50)
+       
         print("Thank you! Proceeding with commit...")
-        print("="*50 + "\n")
+        print("\n")
         
         return answers
