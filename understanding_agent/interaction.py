@@ -7,11 +7,9 @@ class Interaction:
         print("Code Understanding Check\n")
         
         for f in context.get("changed_code", []):
-            print(f"Changed:\n{f['path']}")
+            print(f"Changed:\n{f['path']}\n")
             for func in f.get("changed_functions", []):
-                print(f"\nFunction:\n{func['name']}()")
-        
-        print("")
+                print(f"Function:\n{func['name']}()\n")
         
         answers = []
         for i, q in enumerate(questions, 1):
