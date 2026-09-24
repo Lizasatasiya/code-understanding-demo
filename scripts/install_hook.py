@@ -16,11 +16,9 @@ def install_hook():
 # Code Understanding Demo - pre-commit hook
 
 # Redirect stdin to /dev/tty so input() works when committing from terminal.
-# When /dev/tty is unavailable (e.g. VS Code Source Control, CI),
-# skip redirection — the CLI will detect the missing TTY and use defaults.
-if [ -e /dev/tty ]; then
-    exec < /dev/tty
-fi
+# Silently ignore if unavailable (VS Code Source Control, CI, etc.).
+# In that case the CLI detects no TTY and uses non-interactive mode.
+exec < /dev/tty 2>/dev/null || true
 
 echo "[HOOK] Starting Code Understanding..."
 python3 -m understanding_agent.cli
