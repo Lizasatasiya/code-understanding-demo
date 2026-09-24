@@ -43,7 +43,7 @@ def main():
     
     # 8. Developer Interaction
     interaction = Interaction()
-    answers = interaction.ask(context, valid_questions)
+    answers = interaction.ask(context, summary, valid_questions)
     
     # 9. Server Client
     client = ServerClient()
