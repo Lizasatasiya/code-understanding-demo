@@ -1,7 +1,6 @@
 from app.stock_checker import check_stock
 from app.pricing_calculator import calculate_total
-# We will add fraud_detector import during the demo change
-# from app.fraud_detector import is_fraudulent_transaction
+from app.fraud_detector import is_fraudulent_transaction
 
 class CartService:
     def __init__(self):
@@ -31,10 +30,14 @@ class CartService:
 
     def checkout(self, customer_id: str) -> dict:
         total = calculate_total(self.items, self.discount_code)
-        
+
+        if is_fraudulent_transaction(customer_id, total):
+            raise PermissionError("Transaction rejected: suspected fraud.")
+
         return {
             "customer_id": customer_id,
             "items": self.items,
             "total_price": total,
             "status": "completed"
         }
+
