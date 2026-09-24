@@ -42,11 +42,10 @@ class CartService:
         }
 
     
-    def add_gift_wrapping(self, item_id: str) -> bool:
-        """Adds a $5 gift wrap fee to the order and marks the item."""
-        for item in self.items:
-            if item["id"] == item_id:
-                item["gift_wrapped"] = True
-                item["price"] += 5.0
-                return True
-        return False
+
+    def refund_order(self, customer_id: str) -> bool:
+        """Process a full refund for an order. Connects to external payment gateway."""
+        total = calculate_total(self.items, self.discount_code)
+        if total > 500:
+            is_fraudulent_transaction(customer_id, total)
+        return True
