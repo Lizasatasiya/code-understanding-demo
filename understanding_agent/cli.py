@@ -14,7 +14,7 @@ def main():
     # 1. Environment Detection
     env_detector = EnvironmentDetector()
     env = env_detector.detect()
-    print(f"[ENV] {env['language'].capitalize()} project detected")
+    print(f"[ENV] {env['language'].capitalize()} project detected");
     
     # 2. Change Detection
     change_detector = ChangeDetector()

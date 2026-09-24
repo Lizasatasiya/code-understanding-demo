@@ -1,120 +1,101 @@
-# Code Understanding Demo
+# CodeUnderstandingDemo — E-Commerce Cart Engine
 
-This is a proof-of-concept IDE-independent code understanding system that runs on `git commit`.
+A proof-of-concept **IDE-independent code understanding system** that intercepts `git commit`, analyzes your staged changes using AST + LLM, and asks you smart questions before the commit goes through.
 
-## How the Code Graph works
-The system uses the Python `ast` module to detect function definitions and calls in staged files. A simple in-memory graph is constructed using nodes (files and functions) and edges (contains, defined_in, calls). The `ContextBuilder` uses this graph to find relevant dependencies for the modified code.
+---
 
-## How it remains IDE-independent
-The system integrates via a Git `pre-commit` hook. Since Git works exactly the same whether you use VS Code, PyCharm, Neovim, or the terminal, the hook runs reliably regardless of your editor, prompting for understanding before allowing the commit.
+## The Application
 
-## Setup Instructions
+A simple **E-Commerce Cart Engine** with real dependencies between modules:
 
-1. **Initialize the repository:**
-   ```bash
-   cd code-understanding-demo
-   git init
-   ```
+```
+cart_service.py
+    ├── add_item()     → check_stock()        [stock_checker.py]
+    └── checkout()     → calculate_total()    [pricing_calculator.py]
+                       → is_fraudulent_transaction() [fraud_detector.py]
 
-2. **Create a virtual environment and install dependencies:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-3. **Start the FastAPI Server:**
-   Open a new terminal and run:
-   ```bash
-   cd code-understanding-demo
-   source venv/bin/activate
-   python -m server.main
-   ```
-
-4. **Install the Git Hook:**
-   In your main terminal, run:
-   ```bash
-   python -m scripts.install_hook
-   ```
-   Add initial files:
-   ```bash
-   git add .
-   git commit -m "Initial commit" --no-verify
-   ```
-
-## Make a Demo Change
-
-Modify `app/cart_service.py` to add `is_fraudulent_transaction`:
-
-```python
-from app.stock_checker import check_stock
-from app.pricing_calculator import calculate_total
-from app.fraud_detector import is_fraudulent_transaction  # <--- UNCOMMENT THIS
-
-class CartService:
-    # ... (init and add_item)
-        
-    def checkout(self, customer_id: str) -> dict:
-        total = calculate_total(self.items, self.discount_code)
-        
-        # <--- ADD THESE LINES
-        if is_fraudulent_transaction(customer_id, total):
-            raise PermissionError("Transaction rejected: suspected fraud.")
-        
-        return {
-            "customer_id": customer_id,
-            "items": self.items,
-            "total_price": total,
-            "status": "completed"
-        }
+pricing_calculator.py
+    └── calculate_total() → apply_discount()  [discount_applicator.py]
 ```
 
-Run the commit flow:
+| File | Responsibility |
+|---|---|
+| `app/cart_service.py` | Add items, apply promo codes, checkout |
+| `app/stock_checker.py` | Checks item availability against simulated inventory |
+| `app/pricing_calculator.py` | Calculates subtotal, applies discounts, adds 8% tax |
+| `app/discount_applicator.py` | Applies promo code discounts (SUMMER20, WELCOME10) |
+| `app/fraud_detector.py` | Rejects transactions over $1000 or from suspicious users |
+
+---
+
+## Setup
+
+```bash
+# 1. Create venv and install deps
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Add your Groq API key (one level above the project)
+echo "GROQ_API_KEY=your_key_here" > ../.env
+
+# 3. Init git and install the pre-commit hook
+git init
+python -m scripts.install_hook
+git add .
+git commit -m "Initial commit" --no-verify
+
+# 4. Start the FastAPI server (in a separate terminal)
+python3 -m server.main
+```
+
+---
+
+## Demo Change
+
+Open `app/cart_service.py` and add fraud detection to `checkout()`:
+
+```python
+from app.fraud_detector import is_fraudulent_transaction  # uncomment
+
+def checkout(self, customer_id: str) -> dict:
+    total = calculate_total(self.items, self.discount_code)
+
+    if is_fraudulent_transaction(customer_id, total):          # add this
+        raise PermissionError("Transaction rejected: suspected fraud.")
+
+    return {"customer_id": customer_id, "items": self.items,
+            "total_price": total, "status": "completed"}
+```
+
+Then commit it:
+
 ```bash
 git add app/cart_service.py
 git commit -m "add fraud detection on checkout"
 ```
 
-## Example Terminal Output
+---
+
+## What Happens on Commit
+
 ```
-$ git commit -m "add fraud detection on checkout"
+git commit
+    ↓ pre-commit hook fires
+    ↓ ChangeDetector   — git diff + AST (only changed functions)
+    ↓ CodeGraph        — maps file/function relationships
+    ↓ ContextBuilder   — collects relevant dependencies
+    ↓ ChangeSummary    — what changed, why, impact
+    ↓ QuestionGenerator — Groq LLM generates 3 focused questions
+    ↓ Developer answers in terminal
+    ↓ POST /understanding-session → FastAPI server
+    ↓ commit succeeds
+```
 
-[HOOK] Code Understanding Check
-[ENV] Python project detected
-[CHANGE] Reading staged diff...
-[CHANGE] Found 1 modified python files
-[AST] Analyzing changed functions...
-[GRAPH] Building code relationship graph...
-[GRAPH] Found 3 code relationships
-[DEPENDENCY] Finding relevant dependencies...
-[CONTEXT] Building code understanding context...
-[CONTEXT] Selected 2 relevant code entities
-[SUMMARY] Generating change summary...
-[QUESTIONS] Generating questions...
-[QUESTIONS] Generated 3 questions
+---
 
-[INTERACTION] Asking developer...
+## Running Tests
 
-========================================
-Code Understanding Check
-
-Changed:
-app/cart_service.py
-
-Function:
-checkout()
-
-Question 1/3
-
-What behavior did your change introduce?
-
-Your answer:
-> Added fraud detection to block suspicious checkouts.
-
-
-...
-
-[SERVER] Sending understanding session...
-[SERVER] Session received successfully.
-[HOOK] Understanding session completed.
+```bash
+pytest tests/test_cart.py -v
 ```
