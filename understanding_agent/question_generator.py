@@ -54,7 +54,9 @@ class QuestionGenerator:
         """
         lines = [
             "You are a senior developer reviewing a code change.",
-            "Generate 3 specific questions to test if the author understands their own change.",
+            "Generate between 2 and 7 specific questions to test if the author understands their own change.",
+            "The number of questions should depend on how complex the change is. If the change is small, 2 or 3 is enough.",
+            "Keep the questions short and concise. Do not write long questions.",
             "Focus on logic, data flow, and dependency reasoning. No generic questions.",
             "",
             "## What Changed",
@@ -75,7 +77,7 @@ class QuestionGenerator:
 
         lines += [
             "",
-            'Return ONLY a JSON array of 3 strings. Example: ["Q1?", "Q2?", "Q3?"]',
+            'Return ONLY a JSON array of strings (between 2 and 7). Example: ["Q1?", "Q2?", "Q3?"]',
         ]
         return "\n".join(lines)
 
@@ -119,7 +121,7 @@ class QuestionGenerator:
             if text.endswith("```"):
                 text = text[:-3].strip()
 
-            return json.loads(text)[:3]
+            return json.loads(text)[:7]
 
         except Exception as e:
             print(f"[QUESTIONS] Error calling Groq: {e}")

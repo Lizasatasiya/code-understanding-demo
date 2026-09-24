@@ -5,6 +5,7 @@ def validate_promo_code(code: str) -> bool:
     return code in VALID_CODES
 
 def apply_discount(base_price: float, code: str) -> float:
+    """Looks up a promo code and applies the percentage discount to the base price."""
     if not code:
         return base_price
 

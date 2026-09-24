@@ -1,9 +1,11 @@
 from app.discount_applicator import apply_discount
 
 def calculate_subtotal(items: list) -> float:
+    """Calculates the sum of all item prices multiplied by their quantities."""
     return sum(item["price"] * item["quantity"] for item in items)
 
 def calculate_total(items: list, discount_code: str = None) -> float:
+    """Calculates the final checkout total by applying discounts and calculating 8% tax."""
     subtotal = calculate_subtotal(items)
     discounted_total = apply_discount(subtotal, discount_code)
     

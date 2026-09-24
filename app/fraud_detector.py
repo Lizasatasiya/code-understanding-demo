@@ -1,4 +1,5 @@
 def is_fraudulent_transaction(customer_id: str, total_price: float) -> bool:
+    """Evaluates if a transaction is suspicious based on amount threshold and user ID."""
     # Simulated fraud detection rules
     if total_price > 1000.0:
         return True
