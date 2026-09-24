@@ -1,8 +1,7 @@
 from app.task_utils import generate_task_id
-# We will add task_validator import during the demo change
-# from app.task_validator import validate_title
-
+from app.task_validator import validate_title  # <-- Uncommented this line
 def add_task(tasks: list, title: str) -> list:
+    validate_title(title)  # <-- Added this line
     task_id = generate_task_id(tasks)
     tasks.append({
         "id": task_id,
