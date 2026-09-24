@@ -6,20 +6,16 @@ import ssl
 
 class QuestionGenerator:
     def generate(self, context: dict, summary: dict) -> list:
-        print("[QUESTIONS] Generating questions with LLM...")
 
         api_key = self._load_api_key()
         if not api_key:
-            print("[QUESTIONS] Warning: GROQ_API_KEY not set. Using fallback questions.")
             return self._fallback()
 
         prompt = self._build_prompt(context, summary)
         questions = self._call_groq(api_key, prompt)
         if questions:
-            print(f"[QUESTIONS] Successfully generated {len(questions)} questions from LLM")
             return questions
         else:
-            print("[QUESTIONS] Falling back to default questions.")
             return self._fallback()
 
     def _load_api_key(self) -> str:
@@ -39,7 +35,6 @@ class QuestionGenerator:
                         if line.startswith("GROQ_API_KEY"):
                             api_key = line.split("=", 1)[1].strip().strip('"').strip("'")
                             if api_key:
-                                print(f"[QUESTIONS] Loaded GROQ_API_KEY from {env_path}")
                                 return api_key
             search_dir = os.path.dirname(search_dir)
 
@@ -107,7 +102,6 @@ class QuestionGenerator:
 
             if response.status != 200:
                 body = response.read().decode("utf-8")
-                print(f"[QUESTIONS] Groq API error {response.status}: {body[:300]}")
                 return []
 
             result = json.loads(response.read().decode("utf-8"))
@@ -124,7 +118,6 @@ class QuestionGenerator:
             return json.loads(text)[:7]
 
         except Exception as e:
-            print(f"[QUESTIONS] Error calling Groq: {e}")
             return []
 
     def _fallback(self) -> list:

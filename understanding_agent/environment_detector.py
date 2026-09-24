@@ -23,7 +23,6 @@ _EXTENSION_MAP = {
 
 class EnvironmentDetector:
     def detect(self) -> dict:
-        print("[ENV] Detecting environment...")
 
         try:
             repo_root = subprocess.check_output(

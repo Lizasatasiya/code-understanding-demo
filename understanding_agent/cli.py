@@ -14,14 +14,12 @@ def main():
     # 1. Environment Detection
     env_detector = EnvironmentDetector()
     env = env_detector.detect()
-    print(f"[ENV] {env['language'].capitalize()} project detected");
     
     # 2. Change Detection
     change_detector = ChangeDetector()
     changes = change_detector.detect()
     
     if not changes.get("files"):
-        print("[HOOK] No supported staged changes found. Proceeding.")
         sys.exit(0)
         
     # 3. Code Graph
@@ -58,7 +56,6 @@ def main():
     }
     client.send(session_data)
     
-    print("[HOOK] Understanding session completed.")
     sys.exit(0)
 
 if __name__ == "__main__":

@@ -3,8 +3,6 @@ import ast
 
 class ContextBuilder:
     def build(self, changes: dict, graph) -> dict:
-        print("[DEPENDENCY] Finding relevant dependencies...")
-        print("[CONTEXT] Building code understanding context...")
         
         changed_code = changes.get("files", [])
         
@@ -75,7 +73,6 @@ class ContextBuilder:
         }
         
         entities = len(structured_changes) + len(dep_summaries)
-        print(f"[CONTEXT] Selected {entities} relevant code entities")
         return context
 
     def _get_function_details(self, filepath: str, func_name: str) -> dict:

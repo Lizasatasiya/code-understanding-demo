@@ -44,7 +44,6 @@ class CodeGraph:
             return []
 
     def build(self, changed_files: list):
-        print("[GRAPH] Building code relationship graph (Level 2)...")
         
         to_analyze = []
         
@@ -86,7 +85,6 @@ class CodeGraph:
                     for sub_call in sub_calls:
                         to_analyze.append((call_name, sub_call, depth + 1))
                         
-        print(f"[GRAPH] Found {len(self.edges)} code relationships")
 
     def get_related_functions(self, func_name: str):
         related = []

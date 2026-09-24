@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Set
 
 class ChangeDetector:
     def detect(self) -> Dict[str, Any]:
-        print("[CHANGE] Reading staged diff...")
 
         try:
             diff_output = subprocess.check_output(
@@ -37,7 +36,6 @@ class ChangeDetector:
                 "changed_functions": self._analyze_ast_changes(path, status)
             })
 
-        print(f"[CHANGE] Found {len(files)} modified python files")
         return {"files": files}
 
     def _analyze_ast_changes(self, filepath: str, status: str) -> List[Dict[str, Any]]:
@@ -50,14 +48,12 @@ class ChangeDetector:
           staged file and include only functions whose body overlaps those lines.
         - For newly added files: include all functions (everything is new).
         """
-        print("[AST] Analyzing changed functions...")
 
         try:
             staged_content = subprocess.check_output(
                 ["git", "show", f":{filepath}"], text=True
             )
         except subprocess.CalledProcessError as e:
-            print(f"[AST] Could not read staged content for {filepath}: {e}")
             return []
 
         # For brand-new files every function is "changed"
