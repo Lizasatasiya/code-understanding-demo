@@ -15,12 +15,15 @@ def install_hook():
     hook_content = """#!/bin/sh
 # Code Understanding Demo - pre-commit hook
 
-# Run the understanding agent CLI
-# Redirect stdin to /dev/tty so input() works in pre-commit
-exec < /dev/tty
+# Redirect stdin to /dev/tty so input() works when committing from terminal.
+# When /dev/tty is unavailable (e.g. VS Code Source Control, CI),
+# skip redirection — the CLI will detect the missing TTY and use defaults.
+if [ -e /dev/tty ]; then
+    exec < /dev/tty
+fi
 
 echo "[HOOK] Starting Code Understanding..."
-python -m understanding_agent.cli
+python3 -m understanding_agent.cli
 
 # If the agent exited with an error, prevent commit
 if [ $? -ne 0 ]; then
