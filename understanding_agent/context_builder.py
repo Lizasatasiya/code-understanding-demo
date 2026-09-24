@@ -65,6 +65,10 @@ class ContextBuilder:
                 old_func_body = self._extract_function_source(old_source, func_name)
                 new_func_body = self._extract_function_source(new_source, func_name)
                 
+                # Skip if the function body is unchanged (hunk overlap false-positive)
+                if old_func_body == new_func_body and old_func_body != "":
+                    continue
+                
                 import difflib
                 diff_lines = list(difflib.unified_diff(
                     old_func_body.splitlines(keepends=True),
@@ -75,7 +79,7 @@ class ContextBuilder:
                 ))
                 func_diff = "".join(diff_lines)
                 if not func_diff:
-                    func_diff = "No logic changes detected in this function."
+                    func_diff = f"New function added: {func_name}"
                 
                 structured_changes.append({
                     "file": filepath,
