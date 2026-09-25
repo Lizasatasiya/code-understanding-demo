@@ -1,63 +1,37 @@
 import sys
-import select
-import time
-import threading
+import signal
 
 class Interaction:
     def _timed_input(self, prompt: str, timeout: int) -> str:
-        """Read a line from stdin with a live countdown timer on its own line.
-        Falls back to untimed input when stdin is not a TTY.
+        """Read a line from stdin with a hard timeout using SIGALRM.
+
+        Uses plain input() so the terminal's line editing (backspace, cursor
+        movement, etc.) works correctly. Falls back to untimed input when
+        stdin is not a TTY.
         """
         if not sys.stdin.isatty():
             ans = "Non-interactive mock answer"
             print(f"Your answer: {ans}")
             return ans
 
-        # Print the timer on a dedicated line, then the input prompt below it.
-        # The background thread rewrites only the timer line using ANSI cursor
-        # save/restore so the user's typing line is never disturbed.
-        sys.stdout.write(f"⏱  {timeout:2d}s remaining\n{prompt}")
+        def _timeout_handler(signum, frame):
+            raise TimeoutError()
+
+        # Show the time budget once — no background thread touches stdout
+        sys.stdout.write(f"⏱  You have {timeout}s to answer.\n")
         sys.stdout.flush()
 
-        # ── Countdown thread ──────────────────────────────────────────
-        stop_event = threading.Event()
-
-        def _countdown():
-            remaining = timeout - 1
-            while remaining >= 0 and not stop_event.is_set():
-                time.sleep(1)
-                if stop_event.is_set():
-                    break
-                # \033[s  save cursor position (on the input line)
-                # \033[1A move up one line  (to the timer line)
-                # \033[2K erase the entire timer line
-                # \r      go to column 0
-                # write new timer text
-                # \033[u  restore cursor back to input line
-                sys.stdout.write(
-                    f"\033[s\033[1A\033[2K\r⏱  {remaining:2d}s remaining\033[u"
-                )
-                sys.stdout.flush()
-                remaining -= 1
-
-        timer_thread = threading.Thread(target=_countdown, daemon=True)
-        timer_thread.start()
-
-        # ── Wait for input or timeout ─────────────────────────────────
-        ready, _, _ = select.select([sys.stdin], [], [], timeout)
-        stop_event.set()
-        timer_thread.join(timeout=1)
-
-        if ready:
-            answer = sys.stdin.readline().rstrip("\n")
-            # Erase the timer line that sits above
-            sys.stdout.write("\033[1A\033[2K\r")
-            sys.stdout.flush()
-            return answer
-        else:
-            sys.stdout.write(f"\n⏰ Time's up! ({timeout}s limit reached)\n")
-            sys.stdout.flush()
-            return "[No answer — timed out]"
+        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
+        signal.alarm(timeout)
+        try:
+            ans = input(prompt)
+            return ans
+        except TimeoutError:
+            print(f"\n⏰ Time's up! ({timeout}s limit reached)")
+            return None
+        finally:
+            signal.alarm(0)                          # cancel any pending alarm
+            signal.signal(signal.SIGALRM, old_handler)  # restore previous handler
 
     def ask(self, context: dict, questions: list) -> list:
         print("\n")
@@ -99,6 +73,11 @@ class Interaction:
             print(f"Q{i}: {question_text}")
             ans = self._timed_input("Your answer: ", time_limit)
             
+            if ans is None:
+                print("\n⛔ Commit aborted: all questions must be answered within the time limit.")
+                print("   Please review your changes and try again.\n")
+                sys.exit(1)
+
             answers.append({
                 "question":   question_text,
                 "type":       q_type,
