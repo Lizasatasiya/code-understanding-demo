@@ -5,6 +5,18 @@ import ssl
 
 
 class QuestionGenerator:
+    # Time limits (seconds) keyed by question type
+    TIME_LIMITS = {
+        "Code Logic":              30,
+        "Data Flow":               45,
+        "Dependencies":            45,
+        "Reasoning":               60,
+        "Edge Cases":              60,
+        "Change Impact":           60,
+        "What-if":                 60,
+    }
+    _VALID_TYPES = set(TIME_LIMITS.keys())
+
     def generate(self, context: dict, summary: dict) -> list:
 
         api_key = self._load_api_key()
@@ -47,6 +59,7 @@ class QuestionGenerator:
         - Changed functions and their new calls
         - Key dependencies (what calls what, where it's defined)
         """
+        valid_types = ", ".join(f'"{t}"' for t in self.TIME_LIMITS)
         lines = [
             "You are a senior developer reviewing a code change.",
             "Generate between 2 and 7 specific questions to test if the author understands their own change.",
@@ -69,7 +82,12 @@ class QuestionGenerator:
 
         lines += [
             "",
-            'Return ONLY a JSON array of strings (between 2 and 7). Example: ["Q1?", "Q2?", "Q3?"]',
+            "## Output Format",
+            "Return ONLY a JSON array (between 2 and 7 items). Each item must be an object with:",
+            '  "question": <the question string>',
+            f'  "type": one of {valid_types}',
+            "",
+            'Example: [{"question": "Why is X called before Y?", "type": "Code Logic"}]',
         ]
         return "\n".join(lines)
 
@@ -112,17 +130,36 @@ class QuestionGenerator:
             if text.endswith("```"):
                 text = text[:-3].strip()
 
-            return json.loads(text)[:7]
+            raw = json.loads(text)[:7]
+
+            # Normalise: attach authoritative time_limit from our mapping.
+            # If the LLM returned plain strings, wrap them with a default type.
+            result = []
+            for item in raw:
+                if isinstance(item, str):
+                    item = {"question": item, "type": "Reasoning"}
+                q_type = item.get("type", "Reasoning")
+                if q_type not in self._VALID_TYPES:
+                    q_type = "Reasoning"
+                item["type"] = q_type
+                item["time_limit"] = self.TIME_LIMITS[q_type]
+                result.append(item)
+            return result
 
         except Exception as e:
             return []
 
     def _fallback(self) -> list:
         return [
-            "What behavior did your change introduce?",
-            "Why is the new function called before the main logic executes?",
-            "What should happen when the new check fails?"
+            {"question": "What behavior did your change introduce?",        "type": "Change Impact", "time_limit": 60},
+            {"question": "Why is the new function called before the main logic executes?", "type": "Code Logic",    "time_limit": 30},
+            {"question": "What should happen when the new check fails?",       "type": "Edge Cases",   "time_limit": 60},
         ]
 
     def validate(self, questions: list) -> list:
-        return [q for q in questions if isinstance(q, str) and len(q) > 10]
+        """Accept question dicts; skip malformed entries."""
+        valid = []
+        for q in questions:
+            if isinstance(q, dict) and isinstance(q.get("question"), str) and len(q["question"]) > 10:
+                valid.append(q)
+        return valid

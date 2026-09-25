@@ -1,6 +1,49 @@
 import sys
+import select
+import time
+import threading
 
 class Interaction:
+    def _timed_input(self, prompt: str, timeout: int) -> str:
+        """Read a line from stdin with a live countdown timer.
+        Falls back to untimed input when stdin is not a TTY.
+        """
+        if not sys.stdin.isatty():
+            ans = "Non-interactive mock answer"
+            print(f"Your answer: {ans}")
+            return ans
+
+        # ── Countdown thread ──────────────────────────────────────────
+        stop_event = threading.Event()
+
+        def _countdown():
+            remaining = timeout
+            while remaining > 0 and not stop_event.is_set():
+                # Overwrite the timer portion after the prompt on the same line
+                sys.stdout.write(f"\r{prompt}  ⏱ {remaining:2d}s remaining  \r{prompt}")
+                sys.stdout.flush()
+                time.sleep(1)
+                remaining -= 1
+
+        timer_thread = threading.Thread(target=_countdown, daemon=True)
+        timer_thread.start()
+
+        # ── Wait for input or timeout ─────────────────────────────────
+        ready, _, _ = select.select([sys.stdin], [], [], timeout)
+        stop_event.set()
+        timer_thread.join(timeout=1)
+
+        if ready:
+            answer = sys.stdin.readline().rstrip("\n")
+            # Clear the timer artifact from the line
+            sys.stdout.write("\r" + " " * 60 + "\r")
+            sys.stdout.flush()
+            return answer
+        else:
+            sys.stdout.write(f"\n⏰ Time's up! ({timeout}s limit reached)\n")
+            sys.stdout.flush()
+            return "[No answer — timed out]"
+
     def ask(self, context: dict, questions: list) -> list:
         print("\n")
         print("          CODE UNDERSTANDING CHECK")
@@ -34,18 +77,18 @@ class Interaction:
         print(" QUESTIONS \n")
         answers = []
         for i, q in enumerate(questions, 1):
-            print(f"Q{i}: {q}")
-            
-            # Using sys.stdin for simple CLI interaction
-            if sys.stdin.isatty():
-                ans = input("Your answer: ")
-            else:
-                ans = "Non-interactive mock answer"
-                print(f"Your answer: {ans}")
+            question_text = q["question"]
+            q_type       = q.get("type", "Reasoning")
+            time_limit   = q.get("time_limit", 60)
+
+            print(f"Q{i}: {question_text}")
+            ans = self._timed_input("Your answer: ", time_limit)
             
             answers.append({
-                "question": q,
-                "answer": ans
+                "question":   question_text,
+                "type":       q_type,
+                "time_limit": time_limit,
+                "answer":     ans
             })
             print("")
             
