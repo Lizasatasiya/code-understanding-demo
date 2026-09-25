@@ -27,7 +27,7 @@ class QuestionGenerator:
         questions = self._call_groq(api_key, prompt)
         if questions:
             return questions
-        return []
+        return self._fallback()
 
     def _load_api_key(self) -> str:
         """Load GROQ_API_KEY from env var or walk up directory tree to find .env file."""
@@ -69,7 +69,21 @@ class QuestionGenerator:
             "## Changed Functions",
         ]
 
-        for f in context.get("structured_changes", []):
+        # Cap to 5 most significant changes to avoid overwhelming the LLM
+        changes = context.get("structured_changes", [])
+        if len(changes) > 5:
+            # Prioritise changes that have dependencies or longer diffs
+            changes = sorted(
+                changes,
+                key=lambda c: (
+                    len(c.get('dependency_summary', '')),
+                    len(c.get('diff', ''))
+                ),
+                reverse=True
+            )[:5]
+            lines.append(f"(Showing 5 most significant changes out of {len(context.get('structured_changes', []))} total)\n")
+
+        for f in changes:
             summary = f.get('summary', {})
             lines.append(f"File: {f.get('file', '?')} | Function: {f.get('function', '?')}()")
             lines.append(f"Summary: {summary.get('what_changed', 'N/A')} Impact: {summary.get('impact', 'N/A')}")
@@ -99,7 +113,7 @@ class QuestionGenerator:
             "model": "qwen/qwen3.8-27b",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.5,
-            "max_tokens": 512
+            "max_tokens": 1024
         }).encode("utf-8")
 
         headers = {
