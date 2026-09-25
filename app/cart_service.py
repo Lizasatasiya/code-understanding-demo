@@ -40,7 +40,29 @@ class CartService:
             "total_price": total,
             "status": "done"
         }
+    
+    def update_item_quantity(self, item_id: str, new_quantity: int) -> bool:
+        """Update the quantity of an existing cart item.
 
+        Validates stock availability for the new quantity before applying the
+        change. Raises ValueError if the item is not in the cart or if there
+        is insufficient stock.
+
+        Returns True when the quantity is successfully updated.
+        """
+        if new_quantity <= 0:
+            raise ValueError("Quantity must be a positive integer.")
+
+        for item in self.items:
+            if item["id"] == item_id:
+                if not check_stock(item_id, new_quantity):
+                    raise ValueError(
+                        f"Not enough stock to update '{item['name']}' to quantity {new_quantity}."
+                    )
+                item["quantity"] = new_quantity
+                return True
+
+        raise ValueError(f"Item '{item_id}' not found in cart.")
     
 
     def refund_order(self, customer_id: str) -> bool:
