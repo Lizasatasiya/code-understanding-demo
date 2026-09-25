@@ -27,8 +27,7 @@ class QuestionGenerator:
         questions = self._call_groq(api_key, prompt)
         if questions:
             return questions
-        ##else:
-        ##    return self._fallback()
+        return []
 
     def _load_api_key(self) -> str:
         """Load GROQ_API_KEY from env var or walk up directory tree to find .env file."""
