@@ -5,7 +5,7 @@ import threading
 
 class Interaction:
     def _timed_input(self, prompt: str, timeout: int) -> str:
-        """Read a line from stdin with a live countdown timer.
+        """Read a line from stdin with a live countdown timer on its own line.
         Falls back to untimed input when stdin is not a TTY.
         """
         if not sys.stdin.isatty():
@@ -13,16 +13,31 @@ class Interaction:
             print(f"Your answer: {ans}")
             return ans
 
+        # Print the timer on a dedicated line, then the input prompt below it.
+        # The background thread rewrites only the timer line using ANSI cursor
+        # save/restore so the user's typing line is never disturbed.
+        sys.stdout.write(f"⏱  {timeout:2d}s remaining\n{prompt}")
+        sys.stdout.flush()
+
         # ── Countdown thread ──────────────────────────────────────────
         stop_event = threading.Event()
 
         def _countdown():
-            remaining = timeout
-            while remaining > 0 and not stop_event.is_set():
-                # Overwrite the timer portion after the prompt on the same line
-                sys.stdout.write(f"\r{prompt}  ⏱ {remaining:2d}s remaining  \r{prompt}")
-                sys.stdout.flush()
+            remaining = timeout - 1
+            while remaining >= 0 and not stop_event.is_set():
                 time.sleep(1)
+                if stop_event.is_set():
+                    break
+                # \033[s  save cursor position (on the input line)
+                # \033[1A move up one line  (to the timer line)
+                # \033[2K erase the entire timer line
+                # \r      go to column 0
+                # write new timer text
+                # \033[u  restore cursor back to input line
+                sys.stdout.write(
+                    f"\033[s\033[1A\033[2K\r⏱  {remaining:2d}s remaining\033[u"
+                )
+                sys.stdout.flush()
                 remaining -= 1
 
         timer_thread = threading.Thread(target=_countdown, daemon=True)
@@ -35,8 +50,8 @@ class Interaction:
 
         if ready:
             answer = sys.stdin.readline().rstrip("\n")
-            # Clear the timer artifact from the line
-            sys.stdout.write("\r" + " " * 60 + "\r")
+            # Erase the timer line that sits above
+            sys.stdout.write("\033[1A\033[2K\r")
             sys.stdout.flush()
             return answer
         else:
