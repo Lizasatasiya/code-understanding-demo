@@ -64,6 +64,10 @@ class CartService:
 
         raise ValueError(f"Item '{item_id}' not found in cart.")
     
+    def clear_cart(self) -> None:
+        """Removes all items from the cart and clears any applied discount codes."""
+        self.items = []
+        self.discount_code = None
 
     def refund_order(self, customer_id: str) -> bool:
         """Process a full refund for an order. Connects to external payment gateway."""
