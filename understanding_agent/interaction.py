@@ -1,37 +1,69 @@
 import sys
-import signal
+import select
+import time
+import tty
+import termios
 
 class Interaction:
     def _timed_input(self, prompt: str, timeout: int) -> str:
-        """Read a line from stdin with a hard timeout using SIGALRM.
-
-        Uses plain input() so the terminal's line editing (backspace, cursor
-        movement, etc.) works correctly. Falls back to untimed input when
-        stdin is not a TTY.
+        """Read a line from stdin with a live countdown timer.
+        
+        Uses a single-threaded non-blocking input loop to handle the timer
+        and backspace correctly without threading race conditions.
         """
         if not sys.stdin.isatty():
             ans = "Non-interactive mock answer"
-            print(f"Your answer: {ans}")
+            print(f"{prompt}{ans}")
             return ans
 
-        def _timeout_handler(signum, frame):
-            raise TimeoutError()
-
-        # Show the time budget once — no background thread touches stdout
-        sys.stdout.write(f"⏱  You have {timeout}s to answer.\n")
-        sys.stdout.flush()
-
-        old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
-        signal.alarm(timeout)
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        
+        start_time = time.time()
+        user_input = []
+        
         try:
-            ans = input(prompt)
-            return ans
-        except TimeoutError:
-            print(f"\n⏰ Time's up! ({timeout}s limit reached)")
-            return None
+            tty.setcbreak(fd)
+            while True:
+                remaining = int(timeout - (time.time() - start_time))
+                if remaining <= 0:
+                    sys.stdout.write(f"\r\033[2K⏰ Time's up! ({timeout}s limit reached)\n")
+                    sys.stdout.flush()
+                    return None
+                    
+                # Redraw the line
+                timer_str = f"⏱  {remaining:2d}s"
+                current_str = "".join(user_input)
+                sys.stdout.write(f"\r\033[2K{timer_str} | {prompt}{current_str}")
+                sys.stdout.flush()
+                
+                # Wait for keypress
+                ready, _, _ = select.select([sys.stdin], [], [], 0.2)
+                if ready:
+                    ch = sys.stdin.read(1)
+                    if ch in ('\n', '\r'):
+                        sys.stdout.write("\n")
+                        return "".join(user_input)
+                    elif ch in ('\x08', '\x7f'):  # Backspace
+                        if user_input:
+                            user_input.pop()
+                    elif ch == '\x03':  # Ctrl+C
+                        raise KeyboardInterrupt()
+                    elif ch == '\x04':  # Ctrl+D
+                        sys.stdout.write("\n")
+                        return "".join(user_input)
+                    elif ch == '\x1b':  # Escape sequences (arrow keys)
+                        # Consume the rest of the escape sequence so it doesn't print garbage
+                        r, _, _ = select.select([sys.stdin], [], [], 0.05)
+                        if r:
+                            sys.stdin.read(1)
+                            r2, _, _ = select.select([sys.stdin], [], [], 0.05)
+                            if r2:
+                                sys.stdin.read(1)
+                    elif ch.isprintable():
+                        user_input.append(ch)
         finally:
-            signal.alarm(0)                          # cancel any pending alarm
-            signal.signal(signal.SIGALRM, old_handler)  # restore previous handler
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
     def ask(self, context: dict, questions: list) -> list:
         print("\n")
@@ -65,6 +97,8 @@ class Interaction:
         # 3. Ask Questions
         print(" QUESTIONS \n")
         answers = []
+        any_timeout = False
+        
         for i, q in enumerate(questions, 1):
             question_text = q["question"]
             q_type       = q.get("type", "Reasoning")
@@ -74,9 +108,8 @@ class Interaction:
             ans = self._timed_input("Your answer: ", time_limit)
             
             if ans is None:
-                print("\n⛔ Commit aborted: all questions must be answered within the time limit.")
-                print("   Please review your changes and try again.\n")
-                sys.exit(1)
+                any_timeout = True
+                ans = "[No answer — timed out]"
 
             answers.append({
                 "question":   question_text,
@@ -86,7 +119,11 @@ class Interaction:
             })
             print("")
             
-       
+        if any_timeout:
+            print("⛔ Commit aborted: all questions must be answered within the time limit.")
+            print("   Please review your changes and try again.\n")
+            sys.exit(1)
+            
         print("Thank you! Proceeding with commit...")
         print("\n")
         
