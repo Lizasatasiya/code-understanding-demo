@@ -40,33 +40,35 @@ class ChangeDetector:
 
     def _analyze_ast_changes(self, filepath: str, status: str) -> List[Dict[str, Any]]:
         """
-        Identify ONLY the functions that were actually changed in this commit.
-
-        Strategy:
-        - For modified files: parse the unified diff to get the set of
-          line numbers that were added/changed, then walk the AST of the
-          staged file and include only functions whose body overlaps those lines.
-        - For newly added files: include all functions (everything is new).
+        Identify the functions that were changed (added, modified, or deleted).
         """
+        try:
+            new_content = subprocess.check_output(
+                ["git", "show", f":{filepath}"], text=True, stderr=subprocess.DEVNULL
+            )
+        except subprocess.CalledProcessError:
+            new_content = ""
 
         try:
-            staged_content = subprocess.check_output(
-                ["git", "show", f":{filepath}"], text=True
+            old_content = subprocess.check_output(
+                ["git", "show", f"HEAD:{filepath}"], text=True, stderr=subprocess.DEVNULL
             )
-        except subprocess.CalledProcessError as e:
-            return []
+        except subprocess.CalledProcessError:
+            old_content = ""
 
-        # For brand-new files every function is "changed"
-        if status == 'A':
-            return self._all_functions(staged_content)
-
-        # For modified files, find which line numbers actually changed
-        changed_lines = self._get_changed_line_numbers(filepath)
-        if not changed_lines:
-            # No changed lines detected — fall back to all functions
-            return self._all_functions(staged_content)
-
-        return self._functions_touching_lines(staged_content, changed_lines)
+        # For brand-new files, old_content is empty, so this only returns new functions.
+        # For deletions, new_content is empty, so this only returns old functions.
+        new_funcs = self._all_functions(new_content)
+        old_funcs = self._all_functions(old_content)
+        
+        seen = set()
+        result = []
+        for f in new_funcs + old_funcs:
+            if f["name"] not in seen:
+                seen.add(f["name"])
+                result.append(f)
+                
+        return result
 
     # ------------------------------------------------------------------
     # Helpers
