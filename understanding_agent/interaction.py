@@ -32,12 +32,19 @@ class Interaction:
                 sys.stdout.write(f"\r\033[2K{timer_str} | {prompt}{current_str}")
                 sys.stdout.flush()
                 
+                # Wait up to 0.2s for any input
                 ready, _, _ = select.select([sys.stdin], [], [], 0.2)
-                if ready:
+                if not ready:
+                    continue
+
+                # Drain ALL immediately available characters (fixes paste flooding)
+                submitted = False
+                while True:
                     ch = sys.stdin.read(1)
                     if ch in ('\n', '\r'):
                         sys.stdout.write("\n")
-                        return "".join(user_input)
+                        submitted = True
+                        break
                     elif ch in ('\x08', '\x7f'):
                         if user_input:
                             user_input.pop()
@@ -45,7 +52,8 @@ class Interaction:
                         raise KeyboardInterrupt()
                     elif ch == '\x04':
                         sys.stdout.write("\n")
-                        return "".join(user_input)
+                        submitted = True
+                        break
                     elif ch == '\x1b':
                         r, _, _ = select.select([sys.stdin], [], [], 0.05)
                         if r:
@@ -55,6 +63,14 @@ class Interaction:
                                 sys.stdin.read(1)
                     elif ch.isprintable():
                         user_input.append(ch)
+
+                    # Check if more chars are immediately ready (paste burst)
+                    more, _, _ = select.select([sys.stdin], [], [], 0.0)
+                    if not more:
+                        break  # No more chars — redraw timer once
+
+                if submitted:
+                    return "".join(user_input)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 

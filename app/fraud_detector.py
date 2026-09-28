@@ -66,3 +66,10 @@ def check_customer_history(customer_id: str) -> dict:
         "account_age_days": 30,
         "is_verified": not customer_id.startswith(SUSPICIOUS_PREFIX),
     }
+
+
+def check_ip_reputation(ip_address: str) -> float:
+    """Mock function to check IP address reputation."""
+    if ip_address.startswith("192.168."):
+        return 0.0
+    return 0.1
