@@ -29,7 +29,9 @@ class Interaction:
                     
                 timer_str = f"⏱  {remaining:2d}s"
                 current_str = "".join(user_input)
-                sys.stdout.write(f"\r\033[2K{timer_str} | {prompt}{current_str}")
+                # Truncate to prevent line wrapping which breaks \r\033[2K
+                display_str = ("..." + current_str[-50:]) if len(current_str) > 50 else current_str
+                sys.stdout.write(f"\r\033[2K{timer_str} | {prompt}{display_str}")
                 sys.stdout.flush()
                 
                 # Wait up to 0.2s for any input
@@ -42,16 +44,20 @@ class Interaction:
                 while True:
                     ch = sys.stdin.read(1)
                     if ch in ('\n', '\r'):
-                        sys.stdout.write("\n")
-                        submitted = True
-                        break
+                        # Distinguish manual Enter vs multi-line paste chunk
+                        more_now, _, _ = select.select([sys.stdin], [], [], 0.05)
+                        if more_now:
+                            user_input.append(' ')
+                            continue
+                        else:
+                            submitted = True
+                            break
                     elif ch in ('\x08', '\x7f'):
                         if user_input:
                             user_input.pop()
                     elif ch == '\x03':
                         raise KeyboardInterrupt()
                     elif ch == '\x04':
-                        sys.stdout.write("\n")
                         submitted = True
                         break
                     elif ch == '\x1b':
@@ -70,8 +76,13 @@ class Interaction:
                         break  # No more chars — redraw timer once
 
                 if submitted:
-                    return "".join(user_input)
+                    final_ans = "".join(user_input)
+                    # Clear the timer line and print the FULL input so it remains on screen
+                    sys.stdout.write(f"\r\033[2K{prompt}{final_ans}\n")
+                    sys.stdout.flush()
+                    return final_ans
         finally:
+            termios.tcflush(fd, termios.TCIFLUSH)
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
     def print_context(self, context: dict):
@@ -90,6 +101,4 @@ class Interaction:
                 print("... (diff truncated)")
             else:
                 print(f['diff'])
-            print("\n[CONTEXT / DEPENDENCIES]")
-            print(f['dependency_summary'])
             print("\n")
