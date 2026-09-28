@@ -171,3 +171,9 @@ class CartService:
             "has_heavy_items": len(heavy_items) > 0,
             "has_digital_only": all(item.is_digital for item in self.items) if self.items else False,
         }
+
+    def get_fraud_adjusted_subtotal(self, customer_id: str) -> float:
+        """Returns the subtotal adjusted by the customer's risk score."""
+        subtotal = calculate_subtotal(self.items)
+        risk = get_risk_score(customer_id, subtotal, "credit_card")
+        return subtotal * (1 + risk)
