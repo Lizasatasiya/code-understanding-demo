@@ -97,10 +97,13 @@ class QuestionGenerator:
             "",
             "## Output Format",
             "Return ONLY a JSON array (between 2 and 7 items). Each item must be an object with:",
-            '  "question": <the question string>',
-            f'  "type": one of {valid_types}',
+            '  "question_id": <a unique string like "q1", "q2">,',
+            '  "question": <the question string>,',
+            f'  "type": one of {valid_types},',
+            '  "expected_concepts": [<list of concept strings>],',
+            '  "evaluation_criteria": [<list of criteria strings>]',
             "",
-            'Example: [{"question": "Why is X called before Y?", "type": "Code Logic"}]',
+            'Example: [{"question_id": "q1", "question": "Why is X called before Y?", "type": "Code Logic", "expected_concepts": ["X must be validated before Y executes"], "evaluation_criteria": ["understands the validation order"]}]',
         ]
         return "\n".join(lines)
 
@@ -148,7 +151,7 @@ class QuestionGenerator:
             # Normalise: attach authoritative time_limit from our mapping.
             # If the LLM returned plain strings, wrap them with a default type.
             result = []
-            for item in raw:
+            for i, item in enumerate(raw, 1):
                 if isinstance(item, str):
                     item = {"question": item, "type": "Reasoning"}
                 q_type = item.get("type", "Reasoning")
@@ -156,6 +159,14 @@ class QuestionGenerator:
                     q_type = "Reasoning"
                 item["type"] = q_type
                 item["time_limit"] = self.TIME_LIMITS[q_type]
+                
+                if "question_id" not in item:
+                    item["question_id"] = f"q{i}"
+                if "expected_concepts" not in item:
+                    item["expected_concepts"] = []
+                if "evaluation_criteria" not in item:
+                    item["evaluation_criteria"] = []
+                    
                 result.append(item)
             return result
 
@@ -164,9 +175,30 @@ class QuestionGenerator:
 
     def _fallback(self) -> list:
         return [
-            {"question": "What behavior did your change introduce?",        "type": "Change Impact", "time_limit": 60},
-            {"question": "Why is the new function called before the main logic executes?", "type": "Code Logic",    "time_limit": 30},
-            {"question": "What should happen when the new check fails?",       "type": "Edge Cases",   "time_limit": 60},
+            {
+                "question_id": "q1",
+                "question": "What behavior did your change introduce?",
+                "type": "Change Impact",
+                "time_limit": 60,
+                "expected_concepts": ["change introduces new behavior"],
+                "evaluation_criteria": ["understands impact"]
+            },
+            {
+                "question_id": "q2",
+                "question": "Why is the new function called before the main logic executes?",
+                "type": "Code Logic",
+                "time_limit": 30,
+                "expected_concepts": ["validation happens before execution"],
+                "evaluation_criteria": ["understands logic flow"]
+            },
+            {
+                "question_id": "q3",
+                "question": "What should happen when the new check fails?",
+                "type": "Edge Cases",
+                "time_limit": 60,
+                "expected_concepts": ["system should gracefully handle failure"],
+                "evaluation_criteria": ["understands failure cases"]
+            },
         ]
 
     def validate(self, questions: list) -> list:
