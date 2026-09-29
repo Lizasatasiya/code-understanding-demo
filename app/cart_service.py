@@ -177,3 +177,7 @@ class CartService:
         subtotal = calculate_subtotal(self.items)
         risk = get_risk_score(customer_id, subtotal, "credit_card")
         return subtotal * (1 + risk)
+
+    def get_total_weight(self) -> float:
+        """Calculate the total weight of all physical items in the cart."""
+        return sum(item.weight_kg * item.quantity for item in self.items if not item.is_digital)
