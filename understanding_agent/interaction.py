@@ -101,4 +101,6 @@ class Interaction:
                 print("... (diff truncated)")
             else:
                 print(f['diff'])
+            print("\n[CONTEXT / DEPENDENCIES]")
+            print(f['dependency_summary'])
             print("\n")
