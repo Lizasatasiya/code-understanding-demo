@@ -181,3 +181,7 @@ class CartService:
     def get_total_weight(self) -> float:
         """Calculate the total weight of all physical items in the cart."""
         return sum(item.weight_kg * item.quantity for item in self.items if not item.is_digital)
+
+    def get_total_items_count(self) -> int:
+        """Return the total number of items in the cart."""
+        return sum(item.quantity for item in self.items)
