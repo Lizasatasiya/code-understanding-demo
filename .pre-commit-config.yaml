@@ -1,0 +1,5 @@
+repos:
+-   repo: /Users/liza/Documents/PRE-COMMIT-DEMO/understanding-agent-hook
+    rev: master
+    hooks:
+    -   id: understanding-agent
