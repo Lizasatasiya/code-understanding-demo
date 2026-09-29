@@ -1,5 +1,5 @@
 repos:
--   repo: /Users/liza/Documents/PRE-COMMIT-DEMO/understanding-agent-hook
-    rev: master
+-   repo: https://github.com/Lizasatasiya/understanding-agentHook.git
+    rev: main
     hooks:
     -   id: understanding-agent
