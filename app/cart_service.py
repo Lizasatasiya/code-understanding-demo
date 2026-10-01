@@ -185,3 +185,9 @@ class CartService:
     def get_total_items_count(self) -> int:
         """Return the total number of items in the cart."""
         return sum(item.quantity for item in self.items)
+
+    def get_most_expensive_item(self):
+        """Return the most expensive item in the cart, or None if cart is empty."""
+        if not self.items:
+            return None
+        return max(self.items, key=lambda item: item.price)
