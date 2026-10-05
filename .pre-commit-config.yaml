@@ -1,6 +1,6 @@
 repos:
 -   repo: /Users/liza/Documents/PRE-COMMIT-DEMO/understanding-agent-hook
-    rev: v0.3.1
+    rev: v0.4.0
     hooks:
     -   id: understanding-agent
 
