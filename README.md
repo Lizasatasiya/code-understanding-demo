@@ -36,8 +36,8 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# 2. Add your Groq API key (one level above the project)
-echo "GROQ_API_KEY=your_key_here" > ../.env
+# 2. Add your Nous Research API key (one level above the project)
+echo "NOUS_API_KEY=your_key_here" > ../.env
 
 # 3. Init git and install the pre-commit hook
 git init
@@ -86,7 +86,7 @@ git commit
     ↓ CodeGraph        — maps file/function relationships
     ↓ ContextBuilder   — collects relevant dependencies
     ↓ ChangeSummary    — what changed, why, impact
-    ↓ QuestionGenerator — Groq LLM generates 3 focused questions
+    ↓ QuestionGenerator — Nous Research LLM generates 3 focused questions
     ↓ Developer answers in terminal
     ↓ POST /understanding-session → FastAPI server
     ↓ commit succeeds

@@ -1,6 +1,11 @@
 repos:
--   repo: /Users/liza/Documents/PRE-COMMIT-DEMO/understanding-agent-hook
-    rev: v0.3.1
+-   repo: local
     hooks:
     -   id: understanding-agent
+        name: Code Understanding Check
+        entry: env PYTHONPATH=/Users/liza/Documents/PRE-COMMIT-DEMO/understanding-agent-hook python3 -m understanding_agent.cli
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
 
