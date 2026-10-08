@@ -14,4 +14,4 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app = create_app(repo_root=REPO_ROOT)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run("server.main:app", host="127.0.0.1", port=8000, reload=True)
