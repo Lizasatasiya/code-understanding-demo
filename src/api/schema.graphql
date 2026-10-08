@@ -1,0 +1,165 @@
+# =============================================================================
+# schema.graphql
+# GraphQL schema for the e-commerce storefront API.
+# Covers products, carts, orders, and discount codes.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Scalars
+# ---------------------------------------------------------------------------
+scalar DateTime
+scalar Decimal
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+
+type Product {
+    id: ID!
+    name: String!
+    description: String
+    price: Decimal!
+    stock: Int!
+    rating: Float
+    imageUrl: String
+    category: Category
+    tags: [String!]!
+}
+
+type Category {
+    id: ID!
+    name: String!
+    slug: String!
+    products(limit: Int = 20, offset: Int = 0): [Product!]!
+}
+
+type CartItem {
+    id: ID!
+    product: Product!
+    quantity: Int!
+    unitPrice: Decimal!
+    lineTotal: Decimal!
+}
+
+type Cart {
+    id: ID!
+    items: [CartItem!]!
+    itemCount: Int!
+    subtotal: Decimal!
+    tax: Decimal!
+    discount: Decimal!
+    total: Decimal!
+    expiresAt: DateTime
+}
+
+type DiscountCode {
+    code: String!
+    discountType: DiscountType!
+    discountValue: Decimal!
+    minOrderValue: Decimal!
+    isValid: Boolean!
+}
+
+type Order {
+    id: ID!
+    status: OrderStatus!
+    items: [CartItem!]!
+    subtotal: Decimal!
+    tax: Decimal!
+    discount: Decimal!
+    total: Decimal!
+    placedAt: DateTime!
+    shippingAddress: Address!
+}
+
+type Address {
+    line1: String!
+    line2: String
+    city: String!
+    state: String!
+    postalCode: String!
+    country: String!
+}
+
+type User {
+    id: ID!
+    name: String!
+    email: String!
+    cart: Cart
+    orders(limit: Int = 10, offset: Int = 0): [Order!]!
+}
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+enum DiscountType {
+    PERCENT
+    FIXED
+}
+
+enum OrderStatus {
+    PENDING
+    CONFIRMED
+    SHIPPED
+    DELIVERED
+    CANCELLED
+}
+
+# ---------------------------------------------------------------------------
+# Queries
+# ---------------------------------------------------------------------------
+
+type Query {
+    # Products
+    product(id: ID!): Product
+    products(
+        categorySlug: String
+        search: String
+        limit: Int = 20
+        offset: Int = 0
+    ): [Product!]!
+
+    # Categories
+    categories: [Category!]!
+
+    # Cart
+    cart(cartId: ID!): Cart
+
+    # Orders
+    order(id: ID!): Order
+    myOrders(limit: Int = 10, offset: Int = 0): [Order!]!
+
+    # Discount
+    validateDiscount(code: String!, cartTotal: Decimal!): DiscountCode
+}
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+type Mutation {
+    # Cart mutations
+    addToCart(cartId: ID, productId: ID!, quantity: Int! = 1): Cart!
+    updateCartItem(cartId: ID!, productId: ID!, quantity: Int!): Cart!
+    removeFromCart(cartId: ID!, productId: ID!): Cart!
+    clearCart(cartId: ID!): Cart!
+    applyDiscount(cartId: ID!, code: String!): Cart!
+
+    # Order mutations
+    placeOrder(cartId: ID!, shippingAddress: AddressInput!): Order!
+    cancelOrder(orderId: ID!): Order!
+}
+
+# ---------------------------------------------------------------------------
+# Input types
+# ---------------------------------------------------------------------------
+
+input AddressInput {
+    line1: String!
+    line2: String
+    city: String!
+    state: String!
+    postalCode: String!
+    country: String!
+}
